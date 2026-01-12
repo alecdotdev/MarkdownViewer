@@ -1,0 +1,10 @@
+    Blocking waiting for file lock on build directory
+    Checking windows-sys v0.60.2
+   Compiling tauri-plugin-fs v2.4.5
+   Compiling tauri-plugin-dialog v2.5.0
+   Compiling markdown-viewer-v2 v0.1.0 (X:\Programming\Tauri Projects\Markdown Viewer\markdown-viewer-v2\src-tauri)
+    Checking muda v0.17.1
+    Checking rfd v0.16.0
+    Checking tauri v2.9.5
+    Checking tauri-plugin-opener v2.5.3
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.28s

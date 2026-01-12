@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { invoke, convertFileSrc } from '@tauri-apps/api/tauri';
+	import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 	import { onMount } from 'svelte';
-	import { open } from '@tauri-apps/api/shell';
+	import { openUrl, openPath } from '@tauri-apps/plugin-opener';
+	import { open } from '@tauri-apps/plugin-dialog';
 
-	let editPath: string = '';
-	let htmlContent: string = '';
+	let editPath = $state('');
+	let htmlContent = $state('');
 
 	async function loadMarkdown(filePath: string) {
 		try {
@@ -38,6 +39,47 @@
 						if (videoId) {
 							replaceWithYoutubeEmbed(a, videoId);
 						}
+					}
+				}
+			}
+
+			// Parse GFM Alerts
+			const blockquotes = doc.querySelectorAll('blockquote');
+			for (const bq of blockquotes) {
+				const firstP = bq.querySelector('p');
+				if (firstP) {
+					const text = firstP.textContent || '';
+					const match = text.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+					if (match) {
+						const type = match[1].toLowerCase();
+						const alertDiv = doc.createElement('div');
+						alertDiv.className = `markdown-alert markdown-alert-${type}`;
+
+						const titleP = doc.createElement('p');
+						titleP.className = 'markdown-alert-title';
+
+						// Add icon based on type
+						const icon = doc.createElement('span');
+						icon.className = 'alert-icon';
+						titleP.appendChild(icon);
+
+						const titleText = doc.createTextNode(type.charAt(0).toUpperCase() + type.slice(1));
+						titleP.appendChild(titleText);
+
+						alertDiv.appendChild(titleP);
+
+						// Remove the [!TYPE] text from the first paragraph
+						firstP.textContent = text.replace(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i, '').trim() || '';
+						if (firstP.textContent === '' && firstP.nextSibling) {
+							firstP.remove();
+						}
+
+						// Move contents of blockquote to alert div
+						while (bq.firstChild) {
+							alertDiv.appendChild(bq.firstChild);
+						}
+
+						bq.replaceWith(alertDiv);
 					}
 				}
 			}
@@ -93,17 +135,33 @@
 
 	async function openInEditor() {
 		if (editPath) {
-			await open(editPath, 'code');
+			await openPath(editPath);
 		} else {
 			console.error('No file path available to open in editor.');
 		}
 	}
 
+	async function selectFile() {
+		const selected = await open({
+			multiple: false,
+			filters: [
+				{
+					name: 'Markdown',
+					extensions: ['md'],
+				},
+			],
+		});
+		if (selected && typeof selected === 'string') {
+			editPath = selected;
+			loadMarkdown(selected);
+		}
+	}
+
 	onMount(() => {
 		invoke('send_markdown_path')
-			.then((path: string) => {
-				editPath = path;
-				loadMarkdown(path);
+			.then((path: any) => {
+				editPath = path as string;
+				loadMarkdown(editPath);
 			})
 			.catch((error) => {
 				console.error('Error receiving Markdown file path:', error);
@@ -111,24 +169,15 @@
 	});
 
 	onMount(async () => {
-		setTimeout(() => {
-			setupWindow();
-			interceptLinks();
-		}, 300);
+		interceptLinks();
 	});
-
-	// https://github.com/tauri-apps/tauri/issues/5170
-	async function setupWindow() {
-		const appWindow = (await import('@tauri-apps/api/window')).appWindow;
-		appWindow.show();
-	}
 
 	function interceptLinks() {
 		document.addEventListener('click', async (event) => {
 			let target = event.target as HTMLElement;
 
 			while (target && target.tagName !== 'A' && target !== document.body) {
-				target = target.parentElement;
+				target = target.parentElement as HTMLElement;
 			}
 
 			if (target && target.tagName === 'A' && (target as HTMLAnchorElement).href) {
@@ -136,7 +185,7 @@
 
 				if (!anchor.href.startsWith('#')) {
 					event.preventDefault();
-					await open(anchor.href);
+					await openUrl(anchor.href);
 				}
 			}
 		});
@@ -146,8 +195,12 @@
 {#if !htmlContent}
 	<div class="message">
 		<p>Open a Markdown file by right-clicking and selecting 'Open with...' &rightarrow; 'Markdown Viewer'</p>
+		<button class="open-btn" onclick={selectFile}> Open file </button>
 	</div>
 {:else}
+	<div class="fab">
+		<button class="open-btn fab-btn" onclick={selectFile}> Open file </button>
+	</div>
 	<article contenteditable="false" class="markdown-body" bind:innerHTML={htmlContent}></article>
 {/if}
 
@@ -214,6 +267,66 @@
 	@media (prefers-color-scheme: light) {
 		.message {
 			color: #000000aa;
+		}
+	}
+
+	.open-btn {
+		background: #0078d4;
+		color: white;
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		padding: 6px 24px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-weight: 400;
+		font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+		font-size: 14px;
+		transition: all 0.1s cubic-bezier(0, 0, 0, 1);
+		margin-top: 20px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+
+	.open-btn:hover {
+		background: #005a9e;
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.open-btn:active {
+		background: #004578;
+		transform: scale(0.98);
+	}
+
+	.fab {
+		position: fixed;
+		top: 20px;
+		right: 20px;
+		z-index: 100;
+	}
+
+	.fab-btn {
+		margin-top: 0;
+		background: rgba(255, 255, 255, 0.2);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		color: var(--color-fg-default);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		opacity: 0.8;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.fab-btn {
+			background: rgba(32, 32, 32, 0.4);
+			border: 1px solid rgba(255, 255, 255, 0.05);
+		}
+	}
+
+	.fab-btn:hover {
+		opacity: 1;
+		background: rgba(255, 255, 255, 0.3);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.fab-btn:hover {
+			background: rgba(48, 48, 48, 0.6);
 		}
 	}
 </style>

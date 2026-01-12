@@ -1,26 +1,28 @@
 [package]
-name = "markdownviewer"
+name = "markdown-viewer-v2"
 version = "0.1.0"
-description = "Markdown Viewer"
-authors = ["Alec"]
-license = ""
-repository = ""
+description = "A Tauri App"
+authors = ["you"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "markdown_viewer_v2_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
-tauri-build = { version = "1.2", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "1.2", features = ["protocol-asset", "shell-open", "window-hide", "window-set-resizable", "window-set-title", "window-show"] }
-serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
 comrak = "0.12"
-regex = "1.5"
-serde_json = "1.0"
-window-vibrancy = "0.4.3"
+window-vibrancy = "0.5"
+serde_json = "1"
 
-[features]
-# this feature is used for production builds or when `devPath` points to the filesystem
-# DO NOT REMOVE!!
-custom-protocol = ["tauri/custom-protocol"]
