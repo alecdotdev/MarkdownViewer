@@ -16,13 +16,17 @@
 				"show": true,
 				"hide": true,
 				"setResizable": true,
-				"setDecorations": true,
+				"setDecorations": false,
 				"setTitle": true
 			},
 			"all": false,
 			"shell": {
 				"all": false,
 				"open": "^https?://|^[a-zA-Z]"
+			},
+			"protocol": {
+				"asset": true,
+				"assetScope": ["**"]
 			}
 		},
 		"bundle": {
@@ -54,7 +58,7 @@
 				"minWidth": 400,
 				"visible": false,
 				"center": true,
-				"decorations": false
+				"decorations": true
 			}
 		]
 	}

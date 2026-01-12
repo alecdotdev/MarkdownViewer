@@ -46,7 +46,7 @@ fn main() {
             if let Some(path) = args.get(1) {
                 let path_arc = Arc::new(path.clone());
                 let app_handle_clone = app.handle();
-                window.set_title(format!("Markdown Viewer - {}", path).as_str());
+                // window.set_title(format!("Markdown Viewer - {}", path).as_str());
 
                 app_handle_clone
                     .emit_all("file_path", path.as_str())
@@ -72,7 +72,6 @@ fn main() {
             window.unmaximize().unwrap();
             window.show().unwrap();
             window.set_focus().unwrap();
-            window.set_decorations(true).unwrap();
 
             Ok(())
         })
